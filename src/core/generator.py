@@ -92,12 +92,27 @@ class Generator:
             logger.error(f"Error analyzing page {title}: {e}")
             return None
 
-    def save_analysis(self, analysis: PageAnalysis, url: str, output_dir: str) -> str:
+    def save_analysis(self, analysis: PageAnalysis, url: str, output_dir: str, url_prefix: str = "") -> str:
         """
         将分析结果保存到文件。返回文件路径。
         """
-        url_hash = hashlib.md5(url.encode()).hexdigest()
-        filename = f"{url_hash}.json"
+        # Determine filename based on URL and prefix
+        if url_prefix and url.startswith(url_prefix):
+            name = url[len(url_prefix):].strip("/").replace("/", "_")
+            if not name:
+                name = "index"
+            filename = f"{name}.json"
+        else:
+            # Fallback logic: use path-based name if possible, otherwise hash
+            from urllib.parse import urlparse
+            path = urlparse(url).path.strip("/")
+            if path:
+                # Remove common prefix if implicit? No, just use full path safe
+                filename = f"{path.replace('/', '_')}.json"
+            else:
+                url_hash = hashlib.md5(url.encode()).hexdigest()
+                filename = f"{url_hash}.json"
+
         filepath = os.path.join(output_dir, filename)
         
         data = analysis.model_dump()

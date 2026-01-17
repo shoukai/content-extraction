@@ -27,6 +27,7 @@ def extract_node(state: AgentState):
     """
     logger.info("Executing extract_node...")
     approved_urls = state.get("approved_urls", [])
+    prefix = state.get("target_url_prefix", "")
     
     if not approved_urls:
         logger.warning("No approved_urls found, skipping extraction.")
@@ -60,7 +61,7 @@ def extract_node(state: AgentState):
         logger.info(f"Analyzing content for {url}...")
         analysis = generator.analyze_page(title, content)
         if analysis:
-            filepath = generator.save_analysis(analysis, url, output_dir)
+            filepath = generator.save_analysis(analysis, url, output_dir, url_prefix=prefix)
             fragment_files.append(filepath)
             logger.success(f"Analysis saved to {filepath}")
         else:
