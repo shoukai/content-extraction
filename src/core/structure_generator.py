@@ -1,9 +1,9 @@
 import os
+import json
 from loguru import logger
 from src.core.generator import generator
-from src.utils.toc_definitions import LANGCHAIN_TOC
 
-def generate_book(fragments_dir: str, output_file: str):
+def generate_book(project_name: str, fragments_dir: str, output_file: str):
     """
     基于 TOC 和片段生成最终书籍
     """
@@ -15,13 +15,29 @@ def generate_book(fragments_dir: str, output_file: str):
         logger.error("Generator not initialized.")
         return
     
-    logger.info("Generating structured document using Generator core logic...")
+    # Try to load dynamic TOC first
+    toc_path = os.path.join(os.path.dirname(fragments_dir), "toc_raw.json")
+    toc = None
+    if os.path.exists(toc_path):
+        logger.info(f"Loading dynamic TOC from {toc_path}")
+        with open(toc_path, 'r', encoding='utf-8') as f:
+            toc = json.load(f)
+    else:
+        logger.info(f"Using static TOC definition for {project_name}")
+        from src.utils.toc_definitions import get_toc
+        toc = get_toc(project_name)
+        
+    if not toc:
+        logger.error(f"No TOC found for project: {project_name}")
+        return
+
+    logger.info(f"Generating structured document for {project_name} using Generator core logic...")
     
     try:
-        content = generator.generate_from_structure(LANGCHAIN_TOC, fragments_dir)
+        content = generator.generate_from_structure(toc, fragments_dir)
         
         # Add Title and Intro
-        final_content = "# LangChain Official Guide (Structured)\n\n"
+        final_content = f"# {project_name.capitalize()} Official Guide (Structured)\n\n"
         final_content += "> Document generated via Content Extraction Pipeline based on official TOC.\n\n"
         final_content += content
         

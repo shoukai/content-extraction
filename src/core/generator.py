@@ -34,6 +34,13 @@ class Generator:
         if not settings:
             raise ValueError("Configuration not loaded")
             
+        # Check for Mock Mode
+        self.is_mock_mode = False
+        api_key = settings.llm.api_key
+        if api_key and (api_key.startswith("sk-dummy") or api_key == "mock"):
+            self.is_mock_mode = True
+            logger.warning("Running in MOCK MODE - LLM calls will be simulated.")
+            
         self.llm = ChatOpenAI(
             model=settings.llm.model,
             openai_api_key=settings.llm.api_key,
@@ -49,7 +56,10 @@ class Generator:
                        "要求：\n"
                        "1. **输出语言必须为中文**（专有名词除外）。\n"
                        "2. **专有名词保留原有英文**，并在括号中补充中文翻译（如果有通用译名）。\n"
-                       "3. 总结和解释要简洁明了，适合学习和记忆。\n"
+                       "3. **解释风格 (利于记忆与检索)**：\n"
+                       "   - 采用 **'定义/原理 + 核心作用/场景'** 的结构。\n"
+                       "   - 语言需简练有力，类似'技术闪卡'，避免废话。\n"
+                       "   - 确保关键信息高密度呈现。\n"
                        "输出必须严格遵循 JSON 格式。\n"
                        "{format_instructions}"),
             ("user", "标题: {title}\n\n内容:\n{content}")
@@ -67,10 +77,40 @@ class Generator:
             ("user", "以下是待整合的文档片段：\n\n{fragments}")
         ])
 
+    def _format_importance(self, level: int) -> str:
+        """
+        格式化重要性评分。
+        Style: English Short Codes (CORE, HIGH, NORM...)
+        """
+        mapping = {
+            5: "[CORE]",
+            4: "[HIGH]",
+            3: "[NORM]",
+            2: "[LOW ]",
+            1: "[INFO]"
+        }
+        return mapping.get(max(1, min(5, level)), "[NORM]")
+
     def analyze_page(self, title: str, content: str) -> Optional[PageAnalysis]:
         """
         分析单个页面内容。
         """
+        # Mock Response
+        if self.is_mock_mode:
+            logger.info(f"[MOCK] Analyzing page: {title}")
+            return PageAnalysis(
+                summary=f"[MOCK] This is a simulated summary for {title}. Content length: {len(content)}.",
+                page_type="Concept",
+                knowledge_points=[
+                    KnowledgePoint(
+                        concept="Mock Concept",
+                        explanation=f"This is a mock explanation generated for {title}.",
+                        importance=3,
+                        tags=["mock", "test"]
+                    )
+                ]
+            )
+
         try:
             # 截断过长的内容以避免 token 溢出
             truncated_content = content[:15000]
@@ -124,7 +164,8 @@ class Generator:
         return filepath
 
     def integrate_fragments(self, fragment_paths: List[str]) -> str:
-        """
+        """imp_sr = slf._format_importance(kp.get('importance', 3))
+                        te_st
         整合多个分析片段，生成最终大纲。
         支持分批处理以避免 Context Window 溢出。
         """
@@ -240,7 +281,13 @@ class Generator:
             
             # Match fragment
             fragment = None
-            if "keywords" in node:
+            
+            # 1. Try direct URL match (from dynamic TOC)
+            if "url" in node and node["url"]:
+                fragment = indexer.find_fragment(node["url"])
+            
+            # 2. Try keywords (from static TOC)
+            if not fragment and "keywords" in node:
                 for kw in node["keywords"]:
                     fragment = indexer.find_fragment(kw)
                     if fragment:
@@ -258,7 +305,8 @@ class Generator:
                         if data.get('knowledge_points'):
                             text += "#### Core Concepts\n"
                             for kp in data['knowledge_points']:
-                                text += f"- **{kp['concept']}** ({kp.get('importance', 3)}⭐): {kp['explanation']}\n"
+                                imp_str = self._format_importance(kp.get('importance', 3))
+                                text += f"- **{kp['concept']}** {imp_str}: {kp['explanation']}\n"
                         text += "\n"
                 except Exception as e:
                     logger.warning(f"Error reading fragment {fragment['path']}: {e}")

@@ -6,10 +6,13 @@ class AgentState(TypedDict):
     智能体状态定义
     """
     # 输入信息
+    project_name: str
+    home_url: str  # 首页 URL，用于提取 TOC
     target_url_prefix: str
     sitemap_url: str
     
-    # 扫描阶段
+    # 扫描/发现阶段
+    toc_structure: List[dict] # 提取到的目录结构
     candidate_urls: List[str]
     
     # 用户确认后的 URL

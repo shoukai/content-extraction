@@ -15,6 +15,11 @@ def scan_node(state: AgentState):
     sitemap = state.get("sitemap_url")
     prefix = state.get("target_url_prefix", "")
     
+    # If candidate_urls already provided (e.g. from CLI --url), skip scan
+    if state.get("candidate_urls"):
+        logger.info(f"Using pre-provided candidate URLs: {len(state['candidate_urls'])} URLs")
+        return {"candidate_urls": state["candidate_urls"], "current_step": "review_pending"}
+    
     if not sitemap:
         return {"error": "Missing sitemap_url"}
         
@@ -28,6 +33,7 @@ def extract_node(state: AgentState):
     logger.info("Executing extract_node...")
     approved_urls = state.get("approved_urls", [])
     prefix = state.get("target_url_prefix", "")
+    project_name = state.get("project_name", "langchain")
     
     if not approved_urls:
         logger.warning("No approved_urls found, skipping extraction.")
@@ -35,7 +41,7 @@ def extract_node(state: AgentState):
         
     results = extractor.extract_batch(approved_urls)
     
-    output_dir = "outputs/fragments"
+    output_dir = os.path.join("outputs", project_name, "fragments")
     os.makedirs(output_dir, exist_ok=True)
     
     fragment_files = []

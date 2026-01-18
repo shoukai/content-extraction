@@ -48,3 +48,32 @@ LANGCHAIN_TOC = [
         {"title": "Observability", "title_cn": "可观测性", "keywords": ["observability"]},
     ]}
 ]
+
+LANGGRAPH_TOC = [
+    {"title": "Overview", "title_cn": "概览", "keywords": ["langgraph/overview"]},
+    {"title": "Concepts", "title_cn": "核心概念", "children": [
+        {"title": "High Level", "title_cn": "高层概念", "keywords": ["concepts/high_level"]},
+        {"title": "Low Level", "title_cn": "底层概念", "keywords": ["concepts/low_level"]},
+        {"title": "Graphs", "title_cn": "图", "keywords": ["concepts/graphs"]},
+        {"title": "State", "title_cn": "状态", "keywords": ["concepts/state"]},
+        {"title": "Nodes", "title_cn": "节点", "keywords": ["concepts/nodes"]},
+        {"title": "Edges", "title_cn": "边", "keywords": ["concepts/edges"]},
+    ]},
+    {"title": "How-to Guides", "title_cn": "操作指南", "children": [
+        {"title": "Persistence", "title_cn": "持久化", "keywords": ["how-tos/persistence"]},
+        {"title": "Streaming", "title_cn": "流式处理", "keywords": ["how-tos/streaming"]},
+        {"title": "Human-in-the-loop", "title_cn": "人机协同", "keywords": ["how-tos/human-in-the-loop"]},
+        {"title": "Memory", "title_cn": "记忆", "keywords": ["how-tos/memory", "add-memory"]},
+        {"title": "Deployment", "title_cn": "部署", "keywords": ["how-tos/deploy"]},
+    ]},
+    {"title": "Reference", "title_cn": "API参考", "keywords": ["reference"]},
+    {"title": "Cloud", "title_cn": "LangGraph Cloud", "keywords": ["cloud"]},
+]
+
+TOC_CONFIG = {
+    "langchain": LANGCHAIN_TOC,
+    "langgraph": LANGGRAPH_TOC
+}
+
+def get_toc(project_name: str):
+    return TOC_CONFIG.get(project_name, [])
